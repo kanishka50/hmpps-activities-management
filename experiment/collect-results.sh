@@ -23,7 +23,7 @@ mkdir -p "$RAWDIR"
 echo "Listing successful pilot runs..."
 RUN_IDS=$("$GH" run list --repo "$REPO" --limit 200 \
             --json databaseId,conclusion,name \
-            --jq '.[] | select(.conclusion == "success") | select(.name | startswith("Pilot -")) | .databaseId')
+            --jq '.[] | select(.conclusion == "success") | select(.name | startswith("Pipeline - Config")) | .databaseId')
 
 if [ -z "$RUN_IDS" ]; then
   echo "No successful pilot runs found."
@@ -69,4 +69,4 @@ echo "Configurations:"
 tail -n +2 "$COMBINED" | cut -d, -f1 | sort | uniq -c
 echo
 echo "Processors the runs landed on:"
-tail -n +2 "$COMBINED" | cut -d, -f4 | sort | uniq -c
+tail -n +2 "$COMBINED" | cut -d, -f5 | sort | uniq -c
