@@ -26,13 +26,14 @@ import sys
 from collections import defaultdict
 
 PATH = sys.argv[1] if len(sys.argv) > 1 else "experiment/data/measurements-all.csv"
-CONFIG_ORDER = ["A", "B", "C", "D", "E"]
+CONFIG_ORDER = ["A", "B", "C", "D", "E", "F"]
 CONFIG_NAME = {
     "A": "Full (reference)",
     "B": "Cached",
     "C": "Minimal",
     "D": "Cached+Minimal",
     "E": "Cached+Parallel",
+    "F": "Cached+Workers",
 }
 
 
@@ -110,7 +111,8 @@ def main():
         ("H2", "A", "B", "caching"),
         ("H3", "A", "C", "stage reduction"),
         ("H3'", "B", "D", "stage reduction, given caching"),
-        ("H4", "B", "E", "parallelisation"),
+        ("H4", "B", "E", "parallelisation across machines"),
+        ("H4'", "B", "F", "parallelisation across cores"),
     ]
     for tag, base, treat, what in comparisons:
         if base in means and treat in means:

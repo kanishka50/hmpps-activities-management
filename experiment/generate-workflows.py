@@ -13,11 +13,23 @@ Configurations (the independent variable, at five levels):
     B Cached           CACHE    | lint | all tests
     C Minimal          no cache | ---- | 1/4 of tests
     D Cached+Minimal   CACHE    | ---- | 1/4 of tests
-    E Cached+Parallel  CACHE    | lint and test as parallel jobs
+    E Cached+Parallel  CACHE    | lint and test as parallel jobs (3 VMs)
+    F Cached+Workers   CACHE    | lint | all tests, ACROSS THE RUNNER'S CORES
 
 "Minimal" is mechanical: lint removed, tests run with the runner's own
 `--shard=1/4`. Nothing is selected by hand, so no subset can have been chosen
 for its effect.
+
+Configurations E and F are two different meanings of "run the tests in
+parallel", and separating them is the point of F:
+
+    E spreads the work over THREE MACHINES. Each is a fresh VM that installs
+      its own dependencies, so the install stage is paid three times.
+    F spreads the work over the CORES OF ONE MACHINE. Nothing is duplicated;
+      the runner already has four cores and the subject uses one of them.
+
+B is the common control for both: B, E and F run identical work (cache, lint,
+the whole suite) and differ only in how the test stage is distributed.
 """
 
 import pathlib
@@ -30,6 +42,14 @@ NO_CACHE = "          # NO `cache:` key. This is an UNCACHED configuration."
 CACHE = "          # Dependency caching ON - a defining factor of this configuration.\n          cache: 'npm'"
 
 TEST_ALL = "npx jest --runInBand"
+# The subject's own package.json pins `--runInBand`, which runs the whole suite
+# in ONE process. Configurations A-E inherit that faithfully. Config F removes
+# it and nothing else, so Jest falls back to ITS OWN default worker count
+# (cores - 1; the runner logs `nproc`, so the worker count is recoverable for
+# every run). The count is the runner's decision, not ours, for the same reason
+# `--shard=1/4` is: a number chosen by hand could be suspected of being chosen
+# for its effect.
+TEST_WORKERS = "npx jest"
 # --shard=1/4 is Jest's own deterministic quarter of the suite: the same files
 # every run, chosen by the runner rather than by us.
 TEST_SHARD = "npx jest --runInBand --shard=1/4"
@@ -62,6 +82,7 @@ SINGLE = [
     ("B", "Cached", CACHE, LINT_BLOCK, TEST_ALL, 5),
     ("C", "Minimal", NO_CACHE, NO_LINT_BLOCK, TEST_SHARD, 4),
     ("D", "Cached+Minimal", CACHE, NO_LINT_BLOCK, TEST_SHARD, 4),
+    ("F", "Cached+Workers", CACHE, LINT_BLOCK, TEST_WORKERS, 5),
 ]
 
 # Config E: three jobs. lint and test run concurrently; build+deploy waits for
