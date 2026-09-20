@@ -62,12 +62,17 @@ for cfg in $SCHEDULE; do
 
   echo "[$n/$TOTAL] Run $run_id started - waiting"
 
-  # --exit-status makes a failed run fail this script, so a broken harness
-  # stops collection immediately instead of producing unusable rows.
-  if ! "$GH" run watch "$run_id" --repo "$REPO" --exit-status >/dev/null 2>&1; then
+  # `gh run watch` is used only to BLOCK until the run finishes; its exit code
+  # is not trusted, because it has been observed returning non-zero for a run
+  # that GitHub recorded as successful (a multi-job Config E run). The
+  # authoritative check is the conclusion reported by the API afterwards.
+  "$GH" run watch "$run_id" --repo "$REPO" >/dev/null 2>&1 || true
+
+  conclusion=$("$GH" run view "$run_id" --repo "$REPO" --json conclusion --jq '.conclusion')
+  if [ "$conclusion" != "success" ]; then
     echo
-    echo "!! Run $run_id (Config $cfg) FAILED. Stopping so the cause can be"
-    echo "!! investigated before more runs are collected."
+    echo "!! Run $run_id (Config $cfg) concluded '$conclusion'. Stopping so the"
+    echo "!! cause can be investigated before more runs are collected."
     echo "!! Inspect with: gh run view $run_id --repo $REPO --log-failed"
     exit 1
   fi
