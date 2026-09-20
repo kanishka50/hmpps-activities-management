@@ -1,0 +1,36 @@
+# ---------------------------------------------------------------------------
+# ADDED FOR THE GREEN DEVOPS EXPERIMENT. Not part of the upstream project.
+#
+# Deploy variant 1: package the artefacts the pipeline has ALREADY produced
+# (dist/ from the build stage, node_modules from the install stage) into a
+# runnable image.
+#
+# Why this exists: the project's own Dockerfile runs its own `npm ci` and
+# `npm run build` inside the image, so using it as the deploy stage would make
+# the deploy stage repeat the install and build stages. The per-stage energy
+# profile would then double-count that work, and the npm cache restored by
+# setup-node cannot reach inside a docker build, which shrinks the measurable
+# share of the treatment. This variant keeps every stage's work distinct.
+#
+# The trade-off (less faithful to the project's real deployment) is why BOTH
+# variants are measured in the pilot and only one is carried forward.
+#
+# Nothing is pushed to any registry.
+# ---------------------------------------------------------------------------
+FROM node:24-alpine
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV BUILD_NUMBER=pilot
+ENV GIT_REF=pilot
+ENV GIT_BRANCH=pilot
+
+COPY package.json package-lock.json ./
+COPY node_modules ./node_modules
+COPY dist ./dist
+COPY assets ./assets
+
+EXPOSE 3000
+
+CMD ["node", "dist/server.js"]
