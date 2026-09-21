@@ -91,11 +91,37 @@ jobs:
           echo "Workload matches the pinned upstream source."
 
       - name: Set up Node.js
+        id: setup
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
           # Dependency caching ON - a defining factor of this configuration.
           cache: 'npm'
+
+      # A CACHED configuration whose cache did not actually restore has silently
+      # run as an UNCACHED one. That happened once, on the first cached run of
+      # the experiment, when no cache existed yet: two of a Config E run's three
+      # jobs installed from the network while being labelled cached. Such a run
+      # must never reach the dataset, so the run fails here instead.
+      #
+      # A new subject application therefore needs ONE WARM-UP RUN of a cached
+      # configuration, which is expected to fail this check and is discarded.
+      # Every measured run after it is verified cached.
+      - name: Verify the cache state matches the configuration
+        run: |
+          expected='hit'
+          actual='${{ steps.setup.outputs.cache-hit }}'
+          echo "cache expected: $expected | setup-node reported: '${actual:-<none>}'"
+          if [ "$expected" = "hit" ] && [ "$actual" != "true" ]; then
+            echo "::error::CACHED configuration did not restore a cache. This run would"
+            echo "::error::have measured an uncached install. Discarding it."
+            echo "::error::If this is a new subject, this was the warm-up run - re-dispatch."
+            exit 1
+          fi
+          if [ "$expected" = "none" ] && [ "$actual" = "true" ]; then
+            echo "::error::UNCACHED configuration restored a cache. Not a valid measurement."
+            exit 1
+          fi
 
       - name: ECO-CI - start measurement
         uses: green-coding-solutions/eco-ci-energy-estimation@v5

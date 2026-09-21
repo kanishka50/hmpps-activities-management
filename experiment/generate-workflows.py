@@ -174,6 +174,7 @@ def main() -> None:
             single_tpl.replace("@@CONFIG@@", cid)
             .replace("@@CONFIG_NAME@@", name)
             .replace("@@CACHE_LINE@@", cache)
+            .replace("@@CACHE_EXPECTED@@", "none" if cache is NO_CACHE else "hit")
             .replace("@@LINT_BLOCK@@", lint)
             .replace("@@TEST_CMD@@", test_cmd)
             .replace("@@EXPECTED_ROWS@@", str(rows))
@@ -190,6 +191,7 @@ def main() -> None:
             job_tpl.replace("@@JOB_ID@@", job_id)
             .replace("@@JOB_NAME@@", job_name)
             .replace("@@NEEDS@@", needs)
+            .replace("@@CACHE_EXPECTED@@", "hit")   # every Config E job is cached
             .replace("@@WORK@@", work)
             .replace("@@EXPECTED_ROWS@@", str(rows))
         )
