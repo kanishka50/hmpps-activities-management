@@ -10,7 +10,7 @@
 #      configuration and be indistinguishable from a treatment effect. The
 #      order is shuffled, and the seed is recorded so the schedule reproduces.
 #
-# Usage:  bash experiment/run-pilot.sh [REPLICATES] [SEED] [CONFIGS]
+# Usage:  bash experiment/run-pilot.sh [REPLICATES] [SEED] [CONFIGS] [SKIP]
 #         bash experiment/run-pilot.sh 2 20260920          # 2 of each: 10 runs
 #         bash experiment/run-pilot.sh 1 20260920 "C E"    # validate two configs
 
@@ -20,6 +20,7 @@ REPO="kanishka50/hmpps-activities-management"
 REPLICATES="${1:-2}"
 SEED="${2:-20260920}"
 CONFIGS="${3:-A B C D E}"
+SKIP="${4:-0}"   # resume: skip the first SKIP entries of the seeded schedule
 
 GH="gh"
 command -v gh >/dev/null 2>&1 || GH="/c/Program Files/GitHub CLI/gh.exe"
@@ -49,6 +50,7 @@ echo
 n=0
 for cfg in $SCHEDULE; do
   n=$((n + 1))
+  [ "$n" -le "$SKIP" ] && continue
   wf="config-$(echo "$cfg" | tr '[:upper:]' '[:lower:]').yml"
 
   echo "----------------------------------------------"
@@ -57,8 +59,15 @@ for cfg in $SCHEDULE; do
   "$GH" workflow run "$wf" --repo "$REPO"
 
   sleep 8
-  run_id=$("$GH" run list --repo "$REPO" --workflow "$wf" --limit 1 \
-             --json databaseId --jq '.[0].databaseId')
+  # Retried: a transient network error here once killed a batch after the
+  # run had already been dispatched (hmpps run 35577796654).
+  run_id=""
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    run_id=$("$GH" run list --repo "$REPO" --workflow "$wf" --limit 1 \
+               --json databaseId --jq '.[0].databaseId' 2>/dev/null) && [ -n "$run_id" ] && break
+    sleep 15
+  done
+  [ -n "$run_id" ] || { echo "!! Could not look up the run for Config $cfg."; exit 1; }
 
   echo "[$n/$TOTAL] Run $run_id started - waiting"
 
@@ -66,7 +75,13 @@ for cfg in $SCHEDULE; do
   # is not trusted, because it has been observed returning non-zero for a run
   # that GitHub recorded as successful (a multi-job Config E run). The
   # authoritative check is the conclusion reported by the API afterwards.
-  "$GH" run watch "$run_id" --repo "$REPO" >/dev/null 2>&1 || true
+  #
+  # `gh run watch` can also RETURN EARLY, while the run is still in progress
+  # (observed on ghostfolio run 35576029304, most likely a transient API
+  # error). So it is repeated until the API itself reports the run completed.
+  until [ "$("$GH" run view "$run_id" --repo "$REPO" --json status --jq '.status' 2>/dev/null)" = "completed" ]; do
+    "$GH" run watch "$run_id" --repo "$REPO" >/dev/null 2>&1 || sleep 30
+  done
 
   conclusion=$("$GH" run view "$run_id" --repo "$REPO" --json conclusion --jq '.conclusion')
   if [ "$conclusion" != "success" ]; then
