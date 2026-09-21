@@ -62,7 +62,7 @@ for id in $RUN_IDS; do
     # Fallback: the workflow prints the CSV, so the log carries the same rows.
     "$GH" run view "$id" --repo "$REPO" --log 2>/dev/null \
       | sed 's/\x1b\[[0-9;]*m//g' \
-      | grep -oE '[A-E],(main|lint|test|build),[0-9]+,[0-9]+,"[^"]*",[0-9]+,[a-z-]+,[0-9.]+,[0-9.]+,[0-9.]+,[0-9.]+' \
+      | grep -oE '[A-F],(main|lint|test|build),[0-9]+,[0-9]+,"[^"]*",[0-9]+,[a-z-]+,[0-9.]+,[0-9.]+,[0-9.]+,[0-9.]+' \
       | sort -u > "$RAWDIR/$id.csv"
     if [ -s "$RAWDIR/$id.csv" ]; then
       got="log"

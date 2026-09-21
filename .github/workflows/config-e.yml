@@ -81,9 +81,10 @@ jobs:
       # jobs installed from the network while being labelled cached. Such a run
       # must never reach the dataset, so the run fails here instead.
       #
-      # A new subject application therefore needs ONE WARM-UP RUN of a cached
-      # configuration, which is expected to fail this check and is discarded.
-      # Every measured run after it is verified cached.
+      # setup-node saves its cache only when the whole job SUCCEEDS
+      # (`post-if: success()`), so a run that fails here never creates the cache
+      # it lacked. The cache is therefore created by the separate, unmeasured
+      # workflow cache-warmup.yml, not by a discarded measured run.
       - name: Verify the cache state matches the configuration
         run: |
           expected='hit'
@@ -92,7 +93,7 @@ jobs:
           if [ "$expected" = "hit" ] && [ "$actual" != "true" ]; then
             echo "::error::CACHED configuration did not restore a cache. This run would"
             echo "::error::have measured an uncached install. Discarding it."
-            echo "::error::If this is a new subject, this was the warm-up run - re-dispatch."
+            echo "::error::Run the 'Cache warm-up (not measured)' workflow, then re-dispatch."
             exit 1
           fi
           if [ "$expected" = "none" ] && [ "$actual" = "true" ]; then
@@ -250,9 +251,10 @@ jobs:
       # jobs installed from the network while being labelled cached. Such a run
       # must never reach the dataset, so the run fails here instead.
       #
-      # A new subject application therefore needs ONE WARM-UP RUN of a cached
-      # configuration, which is expected to fail this check and is discarded.
-      # Every measured run after it is verified cached.
+      # setup-node saves its cache only when the whole job SUCCEEDS
+      # (`post-if: success()`), so a run that fails here never creates the cache
+      # it lacked. The cache is therefore created by the separate, unmeasured
+      # workflow cache-warmup.yml, not by a discarded measured run.
       - name: Verify the cache state matches the configuration
         run: |
           expected='hit'
@@ -261,7 +263,7 @@ jobs:
           if [ "$expected" = "hit" ] && [ "$actual" != "true" ]; then
             echo "::error::CACHED configuration did not restore a cache. This run would"
             echo "::error::have measured an uncached install. Discarding it."
-            echo "::error::If this is a new subject, this was the warm-up run - re-dispatch."
+            echo "::error::Run the 'Cache warm-up (not measured)' workflow, then re-dispatch."
             exit 1
           fi
           if [ "$expected" = "none" ] && [ "$actual" = "true" ]; then
@@ -423,9 +425,10 @@ jobs:
       # jobs installed from the network while being labelled cached. Such a run
       # must never reach the dataset, so the run fails here instead.
       #
-      # A new subject application therefore needs ONE WARM-UP RUN of a cached
-      # configuration, which is expected to fail this check and is discarded.
-      # Every measured run after it is verified cached.
+      # setup-node saves its cache only when the whole job SUCCEEDS
+      # (`post-if: success()`), so a run that fails here never creates the cache
+      # it lacked. The cache is therefore created by the separate, unmeasured
+      # workflow cache-warmup.yml, not by a discarded measured run.
       - name: Verify the cache state matches the configuration
         run: |
           expected='hit'
@@ -434,7 +437,7 @@ jobs:
           if [ "$expected" = "hit" ] && [ "$actual" != "true" ]; then
             echo "::error::CACHED configuration did not restore a cache. This run would"
             echo "::error::have measured an uncached install. Discarding it."
-            echo "::error::If this is a new subject, this was the warm-up run - re-dispatch."
+            echo "::error::Run the 'Cache warm-up (not measured)' workflow, then re-dispatch."
             exit 1
           fi
           if [ "$expected" = "none" ] && [ "$actual" = "true" ]; then
