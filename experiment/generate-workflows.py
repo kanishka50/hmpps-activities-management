@@ -41,18 +41,28 @@ OUT = ROOT / ".github" / "workflows"
 NO_CACHE = "          # NO `cache:` key. This is an UNCACHED configuration."
 CACHE = "          # Dependency caching ON - a defining factor of this configuration.\n          cache: 'npm'"
 
+# The test setting is set EXPLICITLY in every configuration and is never
+# inherited from the subject application. This matters as soon as there is more
+# than one subject: hmpps pins `jest --runInBand` in its own package.json, but
+# another project may already run in parallel by default. Defining B and F by
+# what was CHANGED would make them mean different things on different subjects,
+# and they could not be compared. They are defined by what they DO:
+#
+#   one process  - the runner's own force-serial flag, stated explicitly.
+#   default      - the flag simply absent, so the test runner picks its own
+#                  worker count (Jest: cores - 1). Never a number chosen by
+#                  hand, for the same reason --shard=1/4 is not: a hand-picked
+#                  number could be suspected of being chosen for its effect.
+#                  Every run logs `nproc`, so the count is recoverable.
+#
+# For hmpps the subject's default already was one process, so this states
+# explicitly what was already true and changes no measurement.
 TEST_ALL = "npx jest --runInBand"
-# The subject's own package.json pins `--runInBand`, which runs the whole suite
-# in ONE process. Configurations A-E inherit that faithfully. Config F removes
-# it and nothing else, so Jest falls back to ITS OWN default worker count
-# (cores - 1; the runner logs `nproc`, so the worker count is recoverable for
-# every run). The count is the runner's decision, not ours, for the same reason
-# `--shard=1/4` is: a number chosen by hand could be suspected of being chosen
-# for its effect.
+TEST_SHARD_SERIAL = "npx jest --runInBand --shard=1/4"
 TEST_WORKERS = "npx jest"
 # --shard=1/4 is Jest's own deterministic quarter of the suite: the same files
 # every run, chosen by the runner rather than by us.
-TEST_SHARD = "npx jest --runInBand --shard=1/4"
+TEST_SHARD = TEST_SHARD_SERIAL
 
 LINT_BLOCK = """
       # ================= STAGE: LINT =================
